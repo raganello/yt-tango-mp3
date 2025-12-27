@@ -1,0 +1,7 @@
+__pycache__/
+*.py~
+.patch
+diffs.txt
+tango/
+.tmp/
+
