@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # purpose: Archive YouTube tango tracks as verified MP3s
-# version: 20251227b
+# version: 20251228a
 # owner: Paul Thompson
 # logs: yt_tango_mp3.log
 
@@ -17,7 +17,7 @@ from pathlib import Path
 # =========================
 # SINGLE SOURCE OF TRUTH
 # =========================
-SCRIPT_VERSION = "20251227b"
+SCRIPT_VERSION = "20251228a"
 
 OWNER_TAG = "THOMPSON, Paul"
 ENCODING_TAG = "MP3 CBR 320 kbps (yt-dlp)"
@@ -109,18 +109,26 @@ def process_entry(url, desc, genre, output_root, args):
     if genre not in GENRES:
         return False, "invalid genre"
 
-    if args.dry_run:
-        print("SUCCESS (.mp3 dry-run)")
-        return True, None
-
     orchestra_token = desc.split()[0].upper()
     if orchestra_token not in ORCHESTRA_DIR_MAP:
         return False, "orchestra mapping missing"
 
     out_dir = Path(output_root) / genre / ORCHESTRA_DIR_MAP[orchestra_token]
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     target = out_dir / f"{desc}.mp3"
+
+    if args.dry_run:
+        action = "create"
+        if target.exists():
+            if args.skip_if_exists:
+                print(f"DRY-RUN: would skip existing {target}")
+                return True, None
+            if not args.overwrite:
+                return False, ".mp3 exists; use --overwrite"
+            action = "overwrite"
+        print(f"DRY-RUN: would {action} {target}")
+        return True, None
+
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     if target.exists():
         if args.skip_if_exists:
@@ -192,6 +200,9 @@ def process_batch(batch_file, output_root, args):
 
         if failures >= ABORT_AFTER_FAILURES:
             break
+
+    if args.dry_run:
+        return
 
     Path(batch_file).write_text("\n".join(new_lines))
 
