@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # purpose: Archive YouTube tango tracks as verified MP3s
-# version: 20251228a
+# version: (see SCRIPT_VERSION)
 # owner: Paul Thompson
 # logs: yt_tango_mp3.log
 
@@ -35,9 +35,28 @@ ABORT_AFTER_FAILURES = 5
 # ORCHESTRA DIRECTORY MAP
 # =========================
 ORCHESTRA_DIR_MAP = {
+    "BASSO": "BASSO, Osvaldo",
+    "BIAGI": "BIAGI, Rodolfo",
+    "CALO": "CALO, Miguel",
+    "CANARO": "CANARO, Francisco",
+    "D'AGOSTINO": "D'AGOSTINO, Angel",
     "D'ARIENZO": "D'ARIENZO, Juan",
+    "DE ANGELIS": "DE ANGELIS, Alfredo",
+    "DE CARO": "DE CARO, Julio",
+    "DEMARE": "DEMARE, Lucio",
+    "DI SARLI": "DI SARLI, Carlos",
+    "DONATO": "DONATO, Carlos",
+    "FIRPO": "FIRPO, Roberto",
+    "FRESCO": "FRESCO, Osvaldo",
+    "LAURENZ": "LAURENZ, Pedro",
+    "LOMUTO": "LOMUTO, Francisco",
+    "MALERBA": "MALERBA, Ricardo",
+    "PUGLIESE": "PUGLIESE, Osvaldo",
+    "RODRIGUEZ": "RODRIGUEZ, Enrique",
+    "SALGAN": "SALGAN, Horacio",
     "TANTURI": "TANTURI, Ricardo",
     "TROILO": "TROILO, Anibal",
+    "VARELA": "VARELA, Alberto",
 }
 
 # =========================
