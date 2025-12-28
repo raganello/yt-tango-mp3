@@ -17,6 +17,7 @@ from pathlib import Path
 # =========================
 # SINGLE SOURCE OF TRUTH
 # =========================
+# NOTE: Do not duplicate this version string anywhere else.
 SCRIPT_VERSION = "20251228a"
 
 OWNER_TAG = "THOMPSON, Paul"
@@ -45,18 +46,21 @@ ORCHESTRA_DIR_MAP = {
     "DE CARO": "DE CARO, Julio",
     "DEMARE": "DEMARE, Lucio",
     "DI SARLI": "DI SARLI, Carlos",
-    "DONATO": "DONATO, Carlos",
+    "DONATO": "DONATO, Edgardo",
     "FIRPO": "FIRPO, Roberto",
-    "FRESCO": "FRESCO, Osvaldo",
+    "FRESEDO": "FRESEDO, Osvaldo",
+    "GOBBI": "GOBBI, Alfredo",
     "LAURENZ": "LAURENZ, Pedro",
     "LOMUTO": "LOMUTO, Francisco",
     "MALERBA": "MALERBA, Ricardo",
+    "MORES": "MORES, Mariano",
+    "PIAZZOLLA": "PIAZZOLLA, Astor",
     "PUGLIESE": "PUGLIESE, Osvaldo",
     "RODRIGUEZ": "RODRIGUEZ, Enrique",
     "SALGAN": "SALGAN, Horacio",
     "TANTURI": "TANTURI, Ricardo",
     "TROILO": "TROILO, Anibal",
-    "VARELA": "VARELA, Alberto",
+    "VARELA": "VARELA, Hector",
 }
 
 # =========================
@@ -81,14 +85,32 @@ def validate_bitrate(mp3_path):
     p = run([
         "ffprobe", "-v", "error",
         "-select_streams", "a:0",
-        "-show_entries", "stream=bit_rate",
+        "-show_entries", "stream=bit_rate,codec_name",
+        "-show_entries", "format=duration,size,bit_rate",
         "-of", "json", mp3_path,
     ])
     if p.returncode != 0:
         return False
     data = json.loads(p.stdout)
-    br = int(data["streams"][0].get("bit_rate", 0))
-    return br >= REQUIRED_BITRATE
+    stream = data.get("streams", [{}])[0]
+    format_data = data.get("format", {})
+    stream_br = int(stream.get("bit_rate") or 0)
+    format_br = int(format_data.get("bit_rate") or 0)
+    if stream_br >= REQUIRED_BITRATE or format_br >= REQUIRED_BITRATE:
+        return True
+    # ffprobe can under-report MP3 CBR bit_rate; fall back to size/duration.
+    # This keeps validation strict while allowing expected variance.
+    if stream.get("codec_name") != "mp3":
+        return False
+    try:
+        duration = float(format_data.get("duration") or 0)
+        size = float(format_data.get("size") or 0)
+    except (TypeError, ValueError):
+        return False
+    if duration <= 0 or size <= 0:
+        return False
+    avg_bitrate = (size * 8) / duration
+    return avg_bitrate >= REQUIRED_BITRATE * 0.95
 
 def write_metadata(mp3_path, title, artist, year):
     tagged_path = mp3_path + ".tagged.mp3"
@@ -135,6 +157,7 @@ def process_entry(url, desc, genre, output_root, args):
     out_dir = Path(output_root) / genre / ORCHESTRA_DIR_MAP[orchestra_token]
     target = out_dir / f"{desc}.mp3"
 
+    # DRY-RUN MUST be strictly observational: no filesystem mutations.
     if args.dry_run:
         action = "create"
         if target.exists():
@@ -142,7 +165,8 @@ def process_entry(url, desc, genre, output_root, args):
                 print(f"DRY-RUN: would skip existing {target}")
                 return True, None
             if not args.overwrite:
-                return False, ".mp3 exists; use --overwrite"
+                print(f"DRY-RUN: would fail (.mp3 exists; use --overwrite) {target}")
+                return True, None
             action = "overwrite"
         print(f"DRY-RUN: would {action} {target}")
         return True, None
