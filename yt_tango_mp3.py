@@ -217,25 +217,31 @@ def main():
         print(SCRIPT_VERSION)
         return
 
+    output_display = Path(args.output_root).resolve()
+    if args.genre and args.desc:
+        orchestra_token = args.desc.split()[0].upper()
+        orchestra_dir = ORCHESTRA_DIR_MAP.get(orchestra_token)
+        if orchestra_dir:
+            output_display = output_display / args.genre / orchestra_dir
     print("SUMMARY")
     print("-------")
     print("Mode   :", "BATCH" if args.batch_file else "SINGLE")
-    print("Output :", args.output_root)
+    print("Output :", f"{output_display}{os.sep}")
     print("DryRun :", args.dry_run)
     print()
 
     if not args.yes:
-        for remaining in range(COUNTDOWN_SECONDS, 0, -1):
-            print(
-                "Press Ctrl+C to abort else execution will start in "
-                f"{remaining} seconds.",
-                flush=True,
-            )
+        message_template = "Press Ctrl+C to abort else execution will start in {N} seconds."
+        remaining = COUNTDOWN_SECONDS
+        sys.stdout.write(message_template.format(N=remaining))
+        sys.stdout.flush()
+        while remaining > 0:
             time.sleep(1)
-        print(
-            "Press Ctrl+C to abort else execution will start in 0 seconds.",
-            flush=True,
-        )
+            remaining -= 1
+            sys.stdout.write("\r" + message_template.format(N=remaining))
+            sys.stdout.flush()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     if args.batch_file:
         process_batch(args.batch_file, args.output_root, args)
