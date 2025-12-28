@@ -224,10 +224,18 @@ def main():
     print("DryRun :", args.dry_run)
     print()
 
-    print(f"Execution will start in {COUNTDOWN_SECONDS} seconds.")
-    print("Press Ctrl+C to abort.\n")
     if not args.yes:
-        time.sleep(COUNTDOWN_SECONDS)
+        for remaining in range(COUNTDOWN_SECONDS, 0, -1):
+            print(
+                "Press Ctrl+C to abort else execution will start in "
+                f"{remaining} seconds.",
+                flush=True,
+            )
+            time.sleep(1)
+        print(
+            "Press Ctrl+C to abort else execution will start in 0 seconds.",
+            flush=True,
+        )
 
     if args.batch_file:
         process_batch(args.batch_file, args.output_root, args)
