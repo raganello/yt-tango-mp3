@@ -72,6 +72,7 @@ def validate_bitrate(mp3_path):
     return br >= REQUIRED_BITRATE
 
 def write_metadata(mp3_path, title, artist, year):
+    tagged_path = mp3_path + ".tagged.mp3"
     cmd = [
         "ffmpeg", "-y",
         "-i", mp3_path,
@@ -81,12 +82,14 @@ def write_metadata(mp3_path, title, artist, year):
         "-metadata", f"comment={ENCODING_TAG}",
         "-metadata", f"copyright={OWNER_TAG}",
         "-codec", "copy",
-        mp3_path + ".tagged",
+        tagged_path,
     ]
     p = run(cmd)
     if p.returncode != 0:
+        if os.path.exists(tagged_path):
+            os.remove(tagged_path)
         return False
-    os.replace(mp3_path + ".tagged", mp3_path)
+    os.replace(tagged_path, mp3_path)
     return True
 
 def validate_metadata(mp3_path):
@@ -237,4 +240,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
