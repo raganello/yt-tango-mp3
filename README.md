@@ -1,13 +1,15 @@
 # yt-tango-mp3
 
-YouTube-to-MP3 batch downloader for tango music.
+Archive YouTube tango tracks as verified MP3s with strict invariants.
 
 ## Engineering Contract
+This repository is governed by `CODEX_CONTRACT.md`.
 
-This repository is governed by strict engineering rules.
+Any change MUST:
+- Preserve all existing features unless explicitly removed
+- Restore and maintain batch mode
+- Produce a full diff
+- Declare all removals explicitly
+- Fail if invariants are violated
 
-**READ FIRST:**
-- CODEX_CONTRACT.md
-
-All refactors, changes, and Codex tasks MUST comply with that contract.
-
+Codex tasks must read and comply with the contract.
