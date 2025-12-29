@@ -178,7 +178,7 @@ def process_entry(url, desc, genre, output_root, args):
                 print(f"DRY-RUN: would skip existing {target}")
                 return True, None
             if not args.overwrite:
-                print(f"DRY-RUN: would fail (.mp3 exists; use --overwrite) {target}")
+                print(f"DRY-RUN: would keep existing (.mp3 exists; use --overwrite) {target}")
                 return True, None
             action = "overwrite"
         print(f"DRY-RUN: would {action} {target}")
@@ -284,7 +284,7 @@ def main():
     ap.add_argument("--desc")
     ap.add_argument("--genre", choices=GENRES)
     ap.add_argument("--batch-file")
-    ap.add_argument("--output-root", default=os.getcwd())
+    ap.add_argument("--output-root")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-if-exists", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
@@ -303,8 +303,12 @@ def main():
         print("ERROR: batch file missing", file=sys.stderr)
         sys.exit(2)
 
-    output_display = Path(args.output_root).resolve()
-    if args.genre and args.desc:
+    output_root_provided = args.output_root is not None
+    output_root = Path(args.output_root).resolve() if output_root_provided else Path(os.getcwd()).resolve()
+    args.output_root = str(output_root)
+
+    output_display = output_root
+    if output_root_provided and args.genre and args.desc:
         orchestra_token = args.desc.split()[0].upper()
         orchestra_dir = ORCHESTRA_DIR_MAP.get(orchestra_token)
         if orchestra_dir:
