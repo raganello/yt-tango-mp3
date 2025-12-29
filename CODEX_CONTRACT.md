@@ -3,8 +3,7 @@
 This repository is governed by the following non-negotiable rules
 when using Codex or any automated editing tool.
 
-CRITICAL RULES
---------------
+== CRITICAL RULES
 
 1. Do NOT remove, rename, or simplify any existing functionality
    unless explicitly instructed.
@@ -20,8 +19,20 @@ CRITICAL RULES
 5. Output MUST be diffs or direct file edits.
    Prose-only summaries are insufficient.
 
-INVARIANTS (must hold after every change)
------------------------------------------
+== Test Harness Separation (Non-Negotiable)
+
+Production code MUST NOT embed test harness logic.
+
+- yt_tango_mp3.py is production code only.
+- All test logic, assertions, and control flow MUST live in
+  run_yt_tango_mp3_tests.sh.
+  - Tests must be black-box and invoked externally.
+  - Any PR embedding test logic into production code MUST be rejected.
+
+This rule exists to prevent test contamination of runtime behavior.
+
+
+== INVARIANTS (must hold after every change)
 
 - Batch mode exists and works
 - --dry-run is purely observational
@@ -31,8 +42,7 @@ INVARIANTS (must hold after every change)
 - Script version is single-source and not duplicated
 - File size must not shrink unexpectedly
 
-REQUIRED PRACTICE
------------------
+== REQUIRED PRACTICE
 
 For every change, the editor MUST list:
 - Features modified
