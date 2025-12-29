@@ -304,11 +304,12 @@ def main():
         sys.exit(2)
 
     output_root_provided = args.output_root is not None
-    default_output_root = Path(__file__).resolve().parent
-    output_root = Path(args.output_root).resolve() if output_root_provided else default_output_root
-    args.output_root = str(output_root)
+    resolved_output_root = (
+        Path(args.output_root).resolve() if output_root_provided else Path(__file__).resolve().parent
+    )
+    args.output_root = str(resolved_output_root)
 
-    output_display = output_root
+    output_display = resolved_output_root
     if output_root_provided and args.genre and args.desc:
         orchestra_token = args.desc.split()[0].upper()
         orchestra_dir = ORCHESTRA_DIR_MAP.get(orchestra_token)
@@ -335,13 +336,13 @@ def main():
         sys.stdout.flush()
 
     if args.batch_file:
-        ok = process_batch(args.batch_file, args.output_root, args)
+        ok = process_batch(args.batch_file, resolved_output_root, args)
         if not ok:
             die("batch failed")
     else:
         if not (args.url and args.desc and args.genre):
             die("missing required args")
-        ok, err = process_entry(args.url, args.desc, args.genre, args.output_root, args)
+        ok, err = process_entry(args.url, args.desc, args.genre, resolved_output_root, args)
         if not ok:
             die(err)
 
