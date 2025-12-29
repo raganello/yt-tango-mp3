@@ -270,6 +270,9 @@ def main():
     if args.version:
         print(SCRIPT_VERSION)
         return
+    if not (args.batch_file or (args.url and args.desc and args.genre)):
+        print("ERROR: missing required args")
+        sys.exit(2)
 
     output_display = Path(args.output_root).resolve()
     if args.genre and args.desc:
