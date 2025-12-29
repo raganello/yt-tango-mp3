@@ -304,7 +304,8 @@ def main():
         sys.exit(2)
 
     output_root_provided = args.output_root is not None
-    output_root = Path(args.output_root).resolve() if output_root_provided else Path(os.getcwd()).resolve()
+    default_output_root = Path(__file__).resolve().parent
+    output_root = Path(args.output_root).resolve() if output_root_provided else default_output_root
     args.output_root = str(output_root)
 
     output_display = output_root
