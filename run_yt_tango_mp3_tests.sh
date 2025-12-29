@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT="./yt_tango_mp3.py"
 SCRIPT_ABS="$(cd "$(dirname "$SCRIPT")" && pwd)/$(basename "$SCRIPT")"
 PYTHON="$(command -v python3)"
-DEFAULT_OUTPUT_ROOT="$(cd "$(dirname "$SCRIPT_ABS")" && pwd)"
+DEFAULT_OUTPUT_ROOT="$("${PYTHON}" -c "from pathlib import Path; print(Path('${SCRIPT_ABS}').resolve().parent)")"
 
 TEST_ROOT="$(pwd)/_test_output"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
@@ -315,7 +315,8 @@ OUTPUT="$("${CMD[@]}" 2>&1)"
 RC=$?
 set -e
 echo "$OUTPUT" >> "$REPORT"
-if [ "$RC" -eq 0 ] && echo "$OUTPUT" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
+OUTPUT_ROOT_LINE="$(echo "$OUTPUT" | awk -F'Output : ' '/^Output : / {print $2; exit}')"
+if [ "$RC" -eq 0 ] && [ "$OUTPUT_ROOT_LINE" = "${DEFAULT_OUTPUT_ROOT}/" ]; then
   echo "RESULT: PASS" | tee -a "$REPORT"
   PASS_COUNT=$((PASS_COUNT+1))
 else
@@ -354,9 +355,12 @@ RC_REAL=$?
 set -e
 echo "$OUTPUT_DRY" >> "$REPORT"
 echo "$OUTPUT_REAL" >> "$REPORT"
+OUTPUT_ROOT_DRY="$(echo "$OUTPUT_DRY" | awk -F'Output : ' '/^Output : / {print $2; exit}')"
+OUTPUT_ROOT_REAL="$(echo "$OUTPUT_REAL" | awk -F'Output : ' '/^Output : / {print $2; exit}')"
 if [ "$RC_DRY" -eq 0 ] && [ "$RC_REAL" -ne 0 ] \
-  && echo "$OUTPUT_DRY" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/" \
-  && echo "$OUTPUT_REAL" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
+  && [ "$OUTPUT_ROOT_DRY" = "${DEFAULT_OUTPUT_ROOT}/" ] \
+  && [ "$OUTPUT_ROOT_REAL" = "${DEFAULT_OUTPUT_ROOT}/" ] \
+  && [ "$OUTPUT_ROOT_DRY" = "$OUTPUT_ROOT_REAL" ]; then
   echo "RESULT: PASS" | tee -a "$REPORT"
   PASS_COUNT=$((PASS_COUNT+1))
 else
@@ -391,9 +395,13 @@ RC_TWO=$?
 set -e
 echo "$OUTPUT_ONE" >> "$REPORT"
 echo "$OUTPUT_TWO" >> "$REPORT"
+OUTPUT_ROOT_ONE="$(echo "$OUTPUT_ONE" | awk -F'Output : ' '/^Output : / {print $2; exit}')"
+OUTPUT_ROOT_TWO="$(echo "$OUTPUT_TWO" | awk -F'Output : ' '/^Output : / {print $2; exit}')"
 if [ "$RC_ONE" -eq 0 ] && [ "$RC_TWO" -eq 0 ] \
-  && echo "$OUTPUT_ONE" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/" \
-  && echo "$OUTPUT_TWO" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
+  && [ "$OUTPUT_ROOT_ONE" = "${DEFAULT_OUTPUT_ROOT}/" ] \
+  && [ "$OUTPUT_ROOT_TWO" = "${DEFAULT_OUTPUT_ROOT}/" ] \
+  && [ "$OUTPUT_ROOT_ONE" != "${CWD_ONE}/" ] \
+  && [ "$OUTPUT_ROOT_TWO" != "${CWD_TWO}/" ]; then
   echo "RESULT: PASS" | tee -a "$REPORT"
   PASS_COUNT=$((PASS_COUNT+1))
 else
