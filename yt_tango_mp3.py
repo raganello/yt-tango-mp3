@@ -304,9 +304,11 @@ def main():
         sys.exit(2)
 
     output_root_provided = args.output_root is not None
-    resolved_output_root = (
-        Path(args.output_root).resolve() if output_root_provided else Path(__file__).resolve().parent
-    )
+    if output_root_provided:
+        resolved_output_root = Path(os.path.abspath(args.output_root))
+    else:
+        script_path = Path(os.path.abspath(sys.argv[0]))
+        resolved_output_root = script_path.parent
     args.output_root = str(resolved_output_root)
 
     output_display = resolved_output_root
