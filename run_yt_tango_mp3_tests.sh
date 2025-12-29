@@ -6,6 +6,7 @@
 set -euo pipefail
 
 SCRIPT="./yt_tango_mp3.py"
+SCRIPT_ABS="$(cd "$(dirname "$SCRIPT")" && pwd)/$(basename "$SCRIPT")"
 PYTHON="$(command -v python3)"
 
 TEST_ROOT="$(pwd)/_test_output"
@@ -324,7 +325,41 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 15: Default behavior when file exists (no skip/overwrite)
+# TEST 15: Default output-root dry-run keeps existing file
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: Default output-root dry-run keeps existing file" | tee -a "$REPORT"
+DEFAULT_EXIST_ROOT="${TEST_ROOT}/default_exists"
+EXIST_DESC="D'Arienzo (Reynal) Esclavas blancas - 1940"
+EXIST_DIR="${DEFAULT_EXIST_ROOT}/tango/D'ARIENZO, Juan"
+EXIST_FILE="${EXIST_DIR}/${EXIST_DESC}.mp3"
+mkdir -p "${EXIST_DIR}"
+echo "stub" > "${EXIST_FILE}"
+CMD=(
+  "$PYTHON" "$SCRIPT_ABS"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "${EXIST_DESC}"
+  --genre tango
+  --dry-run
+  --yes
+)
+echo "CMD: ${CMD[*]} (cwd=${DEFAULT_EXIST_ROOT})" | tee -a "$REPORT"
+set +e
+OUTPUT="$(cd "${DEFAULT_EXIST_ROOT}" && "${CMD[@]}" 2>&1)"
+RC=$?
+set -e
+echo "$OUTPUT" >> "$REPORT"
+if [ "$RC" -eq 0 ] && echo "$OUTPUT" | grep -q "DRY-RUN: would keep existing"; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
+########################################
+# TEST 16: Default behavior when file exists (no skip/overwrite)
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default behavior when file exists (no skip/overwrite)" | tee -a "$REPORT"
@@ -358,7 +393,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 16: Countdown shown when --yes not provided
+# TEST 17: Countdown shown when --yes not provided
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Countdown shown when --yes not provided" | tee -a "$REPORT"
@@ -386,7 +421,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 17: --version matches header and is single-source
+# TEST 18: --version matches header and is single-source
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --version matches header and is single-source" | tee -a "$REPORT"
