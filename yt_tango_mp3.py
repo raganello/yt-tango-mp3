@@ -27,6 +27,13 @@ COUNTDOWN_SECONDS = 5
 
 GENRES = ["tango", "vals", "milonga", "cortina"]
 
+# Help text examples (production CLI output only).
+HELP_EXAMPLES = (
+    "Examples:\n"
+    "  yt_tango_mp3.py --url <url> --desc \"<desc>\" --genre tango --output-root \"<dir>\" --overwrite\n"
+    "  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite\n"
+)
+
 # Batch constants
 BATCH_DONE_PREFIX = "#done "
 BATCH_ERR_PREFIX = "[error:"
@@ -253,7 +260,11 @@ def process_batch(batch_file, output_root, args):
 # MAIN
 # =========================
 def main():
-    ap = argparse.ArgumentParser(description="Archive YouTube tango tracks as verified MP3s.")
+    ap = argparse.ArgumentParser(
+        description="Archive YouTube tango tracks as verified MP3s.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=HELP_EXAMPLES,
+    )
     ap.add_argument("--url")
     ap.add_argument("--desc")
     ap.add_argument("--genre", choices=GENRES)
