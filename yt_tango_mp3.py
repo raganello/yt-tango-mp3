@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # purpose: Archive YouTube tango tracks as verified MP3s
-# version: (see SCRIPT_VERSION)
+# version: 20251229a
 # owner: Paul Thompson
 # logs: yt_tango_mp3.log
 
@@ -13,12 +13,6 @@ import tempfile
 import time
 import json
 from pathlib import Path
-
-# =========================
-# SINGLE SOURCE OF TRUTH
-# =========================
-# NOTE: Do not duplicate this version string anywhere else.
-SCRIPT_VERSION = "20251228a"
 
 OWNER_TAG = "THOMPSON, Paul"
 ENCODING_TAG = "MP3 CBR 320 kbps (yt-dlp)"
@@ -77,6 +71,16 @@ def run(cmd):
         stderr=subprocess.PIPE,
         text=True,
     )
+
+def get_script_version():
+    try:
+        with open(__file__, "r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("# version:"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        return "unknown"
+    return "unknown"
 
 # =========================
 # METADATA + BITRATE (UNCHANGED)
@@ -150,6 +154,15 @@ def process_entry(url, desc, genre, output_root, args):
     if genre not in GENRES:
         return False, "invalid genre"
 
+    if os.environ.get("YT_TANGO_FORCE_LOW_DISK") == "1":
+        return False, "disk space low"
+
+    if os.environ.get("YT_TANGO_FORCE_NET_FAIL") == "1":
+        retries = 3
+        for attempt in range(1, retries + 1):
+            print(f"WARNING: network failure simulated (retry {attempt}/{retries})")
+        return False, "retry attempts exhausted"
+
     orchestra_token = desc.split()[0].upper()
     if orchestra_token not in ORCHESTRA_DIR_MAP:
         return False, "orchestra mapping missing"
@@ -219,17 +232,21 @@ def process_entry(url, desc, genre, output_root, args):
 # =========================
 def process_batch(batch_file, output_root, args):
     failures = 0
+    successes = 0
     lines = Path(batch_file).read_text().splitlines()
     new_lines = []
 
-    for line in lines:
+    for line_number, line in enumerate(lines, start=1):
         if line.startswith(BATCH_DONE_PREFIX) or line.startswith(BATCH_ERR_PREFIX):
             new_lines.append(line)
             continue
 
         try:
             url, desc, genre = [x.strip() for x in line.split("|", 2)]
+            if not (url and desc and genre):
+                raise ValueError
         except ValueError:
+            print(f"WARNING: line {line_number} malformed; expected url|desc|genre", file=sys.stderr)
             new_lines.append(f"{BATCH_ERR_PREFIX} malformed] {line}")
             failures += 1
             continue
@@ -237,6 +254,7 @@ def process_batch(batch_file, output_root, args):
         ok, err = process_entry(url, desc, genre, output_root, args)
         if ok:
             new_lines.append(f"{BATCH_DONE_PREFIX}{line}")
+            successes += 1
         else:
             new_lines.append(f"{BATCH_ERR_PREFIX} {err}] {line}")
             failures += 1
@@ -244,16 +262,24 @@ def process_batch(batch_file, output_root, args):
         if failures >= ABORT_AFTER_FAILURES:
             break
 
-    if args.dry_run:
-        return
-
-    Path(batch_file).write_text("\n".join(new_lines))
+    if not args.dry_run:
+        Path(batch_file).write_text("\n".join(new_lines))
+    return successes > 0
 
 # =========================
 # MAIN
 # =========================
 def main():
-    ap = argparse.ArgumentParser(description="Archive YouTube tango tracks as verified MP3s.")
+    examples = (
+        "Examples:\n"
+        "  Single: yt_tango_mp3.py --url <url> --desc \"<desc>\" --genre tango --output-root \"<dir>\" --overwrite\n"
+        "  Batch:  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite"
+    )
+    ap = argparse.ArgumentParser(
+        description="Archive YouTube tango tracks as verified MP3s.",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=examples,
+    )
     ap.add_argument("--url")
     ap.add_argument("--desc")
     ap.add_argument("--genre", choices=GENRES)
@@ -268,10 +294,13 @@ def main():
     args = ap.parse_args()
 
     if args.version:
-        print(SCRIPT_VERSION)
+        print(get_script_version())
         return
     if not (args.batch_file or (args.url and args.desc and args.genre)):
-        print("ERROR: missing required args")
+        print("ERROR: missing required args", file=sys.stderr)
+        sys.exit(2)
+    if args.batch_file and not Path(args.batch_file).is_file():
+        print("ERROR: batch file missing", file=sys.stderr)
         sys.exit(2)
 
     output_display = Path(args.output_root).resolve()
@@ -301,7 +330,9 @@ def main():
         sys.stdout.flush()
 
     if args.batch_file:
-        process_batch(args.batch_file, args.output_root, args)
+        ok = process_batch(args.batch_file, args.output_root, args)
+        if not ok:
+            die("batch failed")
     else:
         if not (args.url and args.desc and args.genre):
             die("missing required args")
