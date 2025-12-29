@@ -307,8 +307,7 @@ def main():
     if output_root_provided:
         resolved_output_root = Path(os.path.abspath(args.output_root))
     else:
-        script_path = Path(os.path.abspath(sys.argv[0]))
-        resolved_output_root = script_path.parent
+        resolved_output_root = Path(__file__).resolve().parent
     args.output_root = str(resolved_output_root)
 
     output_display = resolved_output_root
