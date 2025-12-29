@@ -1,0 +1,272 @@
+=== yt_tango_mp3 FULL TEST SUITE ===
+Started: Mon 29 Dec 2025 22:50:01 GMT
+Script: ./yt_tango_mp3.py
+===================================
+
+TEST 1: CLI --help works
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --help
+usage: yt_tango_mp3.py [-h] [--url URL] [--desc DESC]
+                       [--genre {tango,vals,milonga,cortina}]
+                       [--batch-file BATCH_FILE] [--output-root OUTPUT_ROOT]
+                       [--dry-run] [--skip-if-exists] [--overwrite] [--yes]
+                       [--version]
+
+Archive YouTube tango tracks as verified MP3s.
+
+options:
+  -h, --help            show this help message and exit
+  --url URL
+  --desc DESC
+  --genre {tango,vals,milonga,cortina}
+  --batch-file BATCH_FILE
+  --output-root OUTPUT_ROOT
+  --dry-run
+  --skip-if-exists
+  --overwrite
+  --yes
+  --version
+
+Examples:
+  Single: yt_tango_mp3.py --url <url> --desc "<desc>" --genre tango --output-root "<dir>" --overwrite
+  Batch:  yt_tango_mp3.py --batch-file "<file>" --output-root "<dir>" --overwrite
+RESULT: PASS
+
+TEST 2: CLI --version works
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --version
+20251229a
+RESULT: PASS
+TEST 3: Missing required args fails
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py
+ERROR: missing required args
+RESULT: PASS
+
+
+TEST 4: Dry-run does not create files
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/dry --dry-run
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/dry/tango/D'ARIENZO, Juan/
+DryRun : True
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+DRY-RUN: would create /Users/pth14/data/tango/new/_test_output/dry/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: PASS
+Dry-run filesystem check: PASS
+
+TEST 5: Single overwrite works
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/single --overwrite
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/single/tango/D'ARIENZO, Juan/
+DryRun : False
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+SUCCESS (.mp3 overwritten)
+RESULT: PASS
+
+TEST 6: Batch mode processes input file
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --batch-file /Users/pth14/data/tango/new/_test_output/batch.txt --output-root /Users/pth14/data/tango/new/_test_output/batch --overwrite
+SUMMARY
+-------
+Mode   : BATCH
+Output : /Users/pth14/data/tango/new/_test_output/batch/
+DryRun : False
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+SUCCESS (.mp3 overwritten)
+RESULT: PASS
+TEST 7: Missing args returns non-zero exit code
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py
+ERROR: missing required args
+RESULT: PASS
+
+TEST 8: Invalid genre fails fast
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://example.com --desc test --genre INVALID
+usage: yt_tango_mp3.py [-h] [--url URL] [--desc DESC]
+                       [--genre {tango,vals,milonga,cortina}]
+                       [--batch-file BATCH_FILE] [--output-root OUTPUT_ROOT]
+                       [--dry-run] [--skip-if-exists] [--overwrite] [--yes]
+                       [--version]
+yt_tango_mp3.py: error: argument --genre: invalid choice: 'INVALID' (choose from tango, vals, milonga, cortina)
+RESULT: PASS
+
+TEST 9: Batch file missing fails cleanly
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --batch-file /no/such/file.txt --output-root /Users/pth14/data/tango/new/_test_output/missing_batch
+ERROR: batch file missing
+RESULT: PASS
+
+TEST 10: Batch continues after malformed line
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --batch-file /Users/pth14/data/tango/new/_test_output/batch_mixed.txt --output-root /Users/pth14/data/tango/new/_test_output/batch_mixed --overwrite
+SUMMARY
+-------
+Mode   : BATCH
+Output : /Users/pth14/data/tango/new/_test_output/batch_mixed/
+DryRun : False
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+WARNING: line 2 malformed; expected url|desc|genre
+SUCCESS (.mp3 overwritten)
+SUCCESS (.mp3 overwritten)
+RESULT: PASS
+
+TEST 11: Simulated low disk space aborts safely
+CMD: YT_TANGO_FORCE_LOW_DISK=1 /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc test --genre tango --output-root /Users/pth14/data/tango/new/_test_output/low_disk
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/low_disk/
+DryRun : False
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+FAILED (disk space low)
+RESULT: PASS
+
+TEST 12: Network failure retry exhaustion
+CMD: YT_TANGO_FORCE_NET_FAIL=1 /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc test --genre tango --output-root /Users/pth14/data/tango/new/_test_output/net_fail
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/net_fail/
+DryRun : False
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+WARNING: network failure simulated (retry 1/3)
+WARNING: network failure simulated (retry 2/3)
+WARNING: network failure simulated (retry 3/3)
+FAILED (retry attempts exhausted)
+RESULT: PASS
+
+TEST 13: Batch dry-run is non-mutating
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --batch-file /Users/pth14/data/tango/new/_test_output/batch_dry.txt --output-root /Users/pth14/data/tango/new/_test_output/batch_dry --dry-run
+SUMMARY
+-------
+Mode   : BATCH
+Output : /Users/pth14/data/tango/new/_test_output/batch_dry/
+DryRun : True
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+DRY-RUN: would create /Users/pth14/data/tango/new/_test_output/batch_dry/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: PASS
+
+TEST 14: Default output-root is used
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --dry-run --yes
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/Documents/tango/new/
+DryRun : True
+
+DRY-RUN: would keep existing (.mp3 exists; use --overwrite) /Users/pth14/Documents/tango/new/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: FAIL
+
+TEST 15: Default output-root matches dry-run and real execution
+CMD (dry-run): /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --dry-run --yes
+CMD (real): YT_TANGO_FORCE_NET_FAIL=1 /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --yes
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/Documents/tango/new/
+DryRun : True
+
+DRY-RUN: would keep existing (.mp3 exists; use --overwrite) /Users/pth14/Documents/tango/new/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/Documents/tango/new/
+DryRun : False
+
+WARNING: network failure simulated (retry 1/3)
+WARNING: network failure simulated (retry 2/3)
+WARNING: network failure simulated (retry 3/3)
+FAILED (retry attempts exhausted)
+RESULT: FAIL
+
+TEST 16: Default output-root does not change with cwd
+CMD (cwd_one): /opt/homebrew/bin/python3 /Users/pth14/data/tango/new/yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --dry-run --yes (cwd=/Users/pth14/data/tango/new/_test_output/cwd_one)
+CMD (cwd_two): /opt/homebrew/bin/python3 /Users/pth14/data/tango/new/yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --dry-run --yes (cwd=/Users/pth14/data/tango/new/_test_output/cwd_two)
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/
+DryRun : True
+
+DRY-RUN: would keep existing (.mp3 exists; use --overwrite) /Users/pth14/data/tango/new/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/
+DryRun : True
+
+DRY-RUN: would keep existing (.mp3 exists; use --overwrite) /Users/pth14/data/tango/new/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: PASS
+
+TEST 17: --output-root overrides default in dry-run and real mode
+CMD (dry-run): /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/override_root --dry-run --yes
+CMD (real): YT_TANGO_FORCE_NET_FAIL=1 /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/override_root --yes
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/override_root/tango/D'ARIENZO, Juan/
+DryRun : True
+
+DRY-RUN: would create /Users/pth14/data/tango/new/_test_output/override_root/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/override_root/tango/D'ARIENZO, Juan/
+DryRun : False
+
+WARNING: network failure simulated (retry 1/3)
+WARNING: network failure simulated (retry 2/3)
+WARNING: network failure simulated (retry 3/3)
+FAILED (retry attempts exhausted)
+RESULT: PASS
+
+TEST 18: Default output-root dry-run keeps existing file
+CMD: /opt/homebrew/bin/python3 /Users/pth14/data/tango/new/yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --dry-run --yes (cwd=/Users/pth14/data/tango/new/_test_output/default_exists)
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/
+DryRun : True
+
+DRY-RUN: would keep existing (.mp3 exists; use --overwrite) /Users/pth14/data/tango/new/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: PASS
+
+TEST 19: Default behavior when file exists (no skip/overwrite)
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/exists_default --yes
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/exists_default/tango/D'ARIENZO, Juan/
+DryRun : False
+
+FAILED (.mp3 exists; use --overwrite)
+RESULT: PASS
+
+TEST 20: Countdown shown when --yes not provided
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --url https://youtu.be/jk1mR4WWMRk --desc D'Arienzo (Reynal) Esclavas blancas - 1940 --genre tango --output-root /Users/pth14/data/tango/new/_test_output/countdown --dry-run
+SUMMARY
+-------
+Mode   : SINGLE
+Output : /Users/pth14/data/tango/new/_test_output/countdown/tango/D'ARIENZO, Juan/
+DryRun : True
+
+Press Ctrl+C to abort else execution will start in 5 seconds.Press Ctrl+C to abort else execution will start in 4 seconds.Press Ctrl+C to abort else execution will start in 3 seconds.Press Ctrl+C to abort else execution will start in 2 seconds.Press Ctrl+C to abort else execution will start in 1 seconds.Press Ctrl+C to abort else execution will start in 0 seconds.
+DRY-RUN: would create /Users/pth14/data/tango/new/_test_output/countdown/tango/D'ARIENZO, Juan/D'Arienzo (Reynal) Esclavas blancas - 1940.mp3
+RESULT: PASS
+
+TEST 21: --version matches header and is single-source
+CMD: /opt/homebrew/bin/python3 ./yt_tango_mp3.py --version
+20251229a
+RESULT: PASS
+
+
+===================================
+Tests run : 21
+Passed    : 19
+Failed    : 2
+Report    : yt_tango_mp3_test_report_20251229_225001.txt
+===================================
