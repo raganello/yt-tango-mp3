@@ -104,7 +104,7 @@ run_test "Batch mode processes input file" \
 
 
 ########################################
-TEST 7: Missing args returns non-zero exit code
+# TEST 7: Missing args returns non-zero exit code
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Missing args returns non-zero exit code" | tee -a "$REPORT"
@@ -123,7 +123,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 8: Invalid genre fails fast
+# TEST 8: Invalid genre fails fast
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Invalid genre fails fast" | tee -a "$REPORT"
@@ -142,7 +142,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 9: Batch file missing fails cleanly
+# TEST 9: Batch file missing fails cleanly
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch file missing fails cleanly" | tee -a "$REPORT"
@@ -161,7 +161,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 10: Batch continues after malformed line
+# TEST 10: Batch continues after malformed line
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch continues after malformed line" | tee -a "$REPORT"
@@ -186,7 +186,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 11: Simulated low disk space aborts safely
+# TEST 11: Simulated low disk space aborts safely
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Simulated low disk space aborts safely" | tee -a "$REPORT"
@@ -205,7 +205,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 12: Network failure retry exhaustion
+# TEST 12: Network failure retry exhaustion
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Network failure retry exhaustion" | tee -a "$REPORT"
@@ -224,7 +224,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-TEST 13: Batch dry-run is non-mutating
+# TEST 13: Batch dry-run is non-mutating
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch dry-run is non-mutating" | tee -a "$REPORT"
@@ -267,4 +267,3 @@ if [[ "${FAIL_COUNT}" -ne 0 ]]; then
 fi
 
 exit 0
-
