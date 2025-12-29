@@ -110,8 +110,10 @@ TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Missing args returns non-zero exit code" | tee -a "$REPORT"
 CMD="$PYTHON $SCRIPT"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$($CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && ! echo "$OUTPUT" | grep -q "Press Ctrl+C"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
@@ -129,8 +131,10 @@ TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Invalid genre fails fast" | tee -a "$REPORT"
 CMD="$PYTHON $SCRIPT --url https://example.com --desc test --genre INVALID"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$($CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && echo "$OUTPUT" | grep -qi "invalid" && ! echo "$OUTPUT" | grep -q "Press Ctrl+C"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
@@ -148,8 +152,10 @@ TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch file missing fails cleanly" | tee -a "$REPORT"
 CMD="$PYTHON $SCRIPT --batch-file /no/such/file.txt --output $TEST_ROOT/missing_batch"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$($CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && echo "$OUTPUT" | grep -qi "batch" && [ ! -d "$TEST_ROOT/missing_batch" ]; then
   echo "RESULT: PASS" | tee -a "$REPORT"
@@ -173,8 +179,10 @@ https://youtu.be/jk1mR4WWMRk|Another Track|tango
 EOF
 CMD="$PYTHON $SCRIPT --batch-file $BATCH_FILE --output $TEST_ROOT/batch_mixed --overwrite"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$($CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && echo "$OUTPUT" | grep -qi "malformed"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
@@ -192,8 +200,10 @@ TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Simulated low disk space aborts safely" | tee -a "$REPORT"
 CMD="YT_TANGO_FORCE_LOW_DISK=1 $PYTHON $SCRIPT --url https://youtu.be/jk1mR4WWMRk --desc test --genre tango --output $TEST_ROOT/low_disk"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$(eval $CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && echo "$OUTPUT" | grep -qi "disk"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
@@ -211,8 +221,10 @@ TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Network failure retry exhaustion" | tee -a "$REPORT"
 CMD="YT_TANGO_FORCE_NET_FAIL=1 $PYTHON $SCRIPT --url https://youtu.be/jk1mR4WWMRk --desc test --genre tango --output $TEST_ROOT/net_fail"
 echo "CMD: $CMD" | tee -a "$REPORT"
+set +e
 OUTPUT="$(eval $CMD 2>&1)"
 RC=$?
+set -e
 echo "$OUTPUT" >> "$REPORT"
 if [ "$RC" -ne 0 ] && echo "$OUTPUT" | grep -qi "retry"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
