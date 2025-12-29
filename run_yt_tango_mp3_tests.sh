@@ -8,6 +8,7 @@ set -euo pipefail
 SCRIPT="./yt_tango_mp3.py"
 SCRIPT_ABS="$(cd "$(dirname "$SCRIPT")" && pwd)/$(basename "$SCRIPT")"
 PYTHON="$(command -v python3)"
+DEFAULT_OUTPUT_ROOT="$(cd "$(dirname "$SCRIPT_ABS")" && pwd)"
 
 TEST_ROOT="$(pwd)/_test_output"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
@@ -314,8 +315,7 @@ OUTPUT="$("${CMD[@]}" 2>&1)"
 RC=$?
 set -e
 echo "$OUTPUT" >> "$REPORT"
-DEFAULT_ROOT="$(pwd)"
-if [ "$RC" -eq 0 ] && echo "$OUTPUT" | grep -q "Output : ${DEFAULT_ROOT}/"; then
+if [ "$RC" -eq 0 ] && echo "$OUTPUT" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
   echo "RESULT: PASS" | tee -a "$REPORT"
   PASS_COUNT=$((PASS_COUNT+1))
 else
@@ -325,14 +325,138 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 15: Default output-root dry-run keeps existing file
+# TEST 15: Default output-root matches dry-run and real execution
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: Default output-root matches dry-run and real execution" | tee -a "$REPORT"
+CMD_DRY=(
+  "$PYTHON" "$SCRIPT"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "D'Arienzo (Reynal) Esclavas blancas - 1940"
+  --genre tango
+  --dry-run
+  --yes
+)
+CMD_REAL=(
+  "$PYTHON" "$SCRIPT"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "D'Arienzo (Reynal) Esclavas blancas - 1940"
+  --genre tango
+  --yes
+)
+echo "CMD (dry-run): ${CMD_DRY[*]}" | tee -a "$REPORT"
+echo "CMD (real): YT_TANGO_FORCE_NET_FAIL=1 ${CMD_REAL[*]}" | tee -a "$REPORT"
+set +e
+OUTPUT_DRY="$("${CMD_DRY[@]}" 2>&1)"
+RC_DRY=$?
+OUTPUT_REAL="$(YT_TANGO_FORCE_NET_FAIL=1 "${CMD_REAL[@]}" 2>&1)"
+RC_REAL=$?
+set -e
+echo "$OUTPUT_DRY" >> "$REPORT"
+echo "$OUTPUT_REAL" >> "$REPORT"
+if [ "$RC_DRY" -eq 0 ] && [ "$RC_REAL" -ne 0 ] \
+  && echo "$OUTPUT_DRY" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/" \
+  && echo "$OUTPUT_REAL" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
+########################################
+# TEST 16: Default output-root does not change with cwd
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: Default output-root does not change with cwd" | tee -a "$REPORT"
+CWD_ONE="${TEST_ROOT}/cwd_one"
+CWD_TWO="${TEST_ROOT}/cwd_two"
+mkdir -p "${CWD_ONE}" "${CWD_TWO}"
+CMD=(
+  "$PYTHON" "$SCRIPT_ABS"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "D'Arienzo (Reynal) Esclavas blancas - 1940"
+  --genre tango
+  --dry-run
+  --yes
+)
+echo "CMD (cwd_one): ${CMD[*]} (cwd=${CWD_ONE})" | tee -a "$REPORT"
+echo "CMD (cwd_two): ${CMD[*]} (cwd=${CWD_TWO})" | tee -a "$REPORT"
+set +e
+OUTPUT_ONE="$(cd "${CWD_ONE}" && "${CMD[@]}" 2>&1)"
+RC_ONE=$?
+OUTPUT_TWO="$(cd "${CWD_TWO}" && "${CMD[@]}" 2>&1)"
+RC_TWO=$?
+set -e
+echo "$OUTPUT_ONE" >> "$REPORT"
+echo "$OUTPUT_TWO" >> "$REPORT"
+if [ "$RC_ONE" -eq 0 ] && [ "$RC_TWO" -eq 0 ] \
+  && echo "$OUTPUT_ONE" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/" \
+  && echo "$OUTPUT_TWO" | grep -q "Output : ${DEFAULT_OUTPUT_ROOT}/"; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
+########################################
+# TEST 17: --output-root overrides default in dry-run and real mode
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: --output-root overrides default in dry-run and real mode" | tee -a "$REPORT"
+OVERRIDE_ROOT="${TEST_ROOT}/override_root"
+EXPECTED_OVERRIDE="Output : ${OVERRIDE_ROOT}/tango/D'ARIENZO, Juan/"
+CMD_DRY=(
+  "$PYTHON" "$SCRIPT"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "D'Arienzo (Reynal) Esclavas blancas - 1940"
+  --genre tango
+  --output-root "${OVERRIDE_ROOT}"
+  --dry-run
+  --yes
+)
+CMD_REAL=(
+  "$PYTHON" "$SCRIPT"
+  --url "https://youtu.be/jk1mR4WWMRk"
+  --desc "D'Arienzo (Reynal) Esclavas blancas - 1940"
+  --genre tango
+  --output-root "${OVERRIDE_ROOT}"
+  --yes
+)
+echo "CMD (dry-run): ${CMD_DRY[*]}" | tee -a "$REPORT"
+echo "CMD (real): YT_TANGO_FORCE_NET_FAIL=1 ${CMD_REAL[*]}" | tee -a "$REPORT"
+set +e
+OUTPUT_DRY="$("${CMD_DRY[@]}" 2>&1)"
+RC_DRY=$?
+OUTPUT_REAL="$(YT_TANGO_FORCE_NET_FAIL=1 "${CMD_REAL[@]}" 2>&1)"
+RC_REAL=$?
+set -e
+echo "$OUTPUT_DRY" >> "$REPORT"
+echo "$OUTPUT_REAL" >> "$REPORT"
+if [ "$RC_DRY" -eq 0 ] && [ "$RC_REAL" -ne 0 ] \
+  && echo "$OUTPUT_DRY" | grep -Fq "${EXPECTED_OVERRIDE}" \
+  && echo "$OUTPUT_REAL" | grep -Fq "${EXPECTED_OVERRIDE}"; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
+########################################
+# TEST 18: Default output-root dry-run keeps existing file
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root dry-run keeps existing file" | tee -a "$REPORT"
 DEFAULT_EXIST_ROOT="${TEST_ROOT}/default_exists"
 EXIST_DESC="D'Arienzo (Reynal) Esclavas blancas - 1940"
-EXIST_DIR="${DEFAULT_EXIST_ROOT}/tango/D'ARIENZO, Juan"
+EXIST_DIR="${DEFAULT_OUTPUT_ROOT}/tango/D'ARIENZO, Juan"
 EXIST_FILE="${EXIST_DIR}/${EXIST_DESC}.mp3"
+mkdir -p "${DEFAULT_EXIST_ROOT}"
 mkdir -p "${EXIST_DIR}"
 echo "stub" > "${EXIST_FILE}"
 CMD=(
@@ -359,7 +483,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 16: Default behavior when file exists (no skip/overwrite)
+# TEST 19: Default behavior when file exists (no skip/overwrite)
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default behavior when file exists (no skip/overwrite)" | tee -a "$REPORT"
@@ -393,7 +517,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 17: Countdown shown when --yes not provided
+# TEST 20: Countdown shown when --yes not provided
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Countdown shown when --yes not provided" | tee -a "$REPORT"
@@ -421,7 +545,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 18: --version matches header and is single-source
+# TEST 21: --version matches header and is single-source
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --version matches header and is single-source" | tee -a "$REPORT"
