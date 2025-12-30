@@ -1,0 +1,32 @@
+name: yt_tango_mp3 test suite
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python3 -m pip install --upgrade pip
+          python3 -m pip install yt-dlp
+
+      - name: Make test harness executable
+        run: chmod +x run_yt_tango_mp3_tests.sh
+
+      - name: Run test suite
+        run: ./run_yt_tango_mp3_tests.sh
+
