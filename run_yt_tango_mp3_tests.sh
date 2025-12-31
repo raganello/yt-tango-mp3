@@ -297,7 +297,56 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 14: Default output-root is used
+# TEST 14: Batch dry-run writes sidecar files
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: Batch dry-run writes sidecar files" | tee -a "$REPORT"
+BATCH_FILE="${TEST_ROOT}/batch_sidecar.txt"
+cat > "$BATCH_FILE" <<EOF
+https://youtu.be/jk1mR4WWMRk|D'Arienzo (Reynal) Esclavas blancas - 1940|tango
+https://youtu.be/jk1mR4WWMRk|D'Arienzo (Reynal) Esclavas blancas - 1940|invalid
+EOF
+CMD=(
+  "$PYTHON" "$SCRIPT"
+  --batch-file "$BATCH_FILE"
+  --output-root "${TEST_ROOT}/batch_sidecar_output"
+  --dry-run
+  --yes
+)
+echo "CMD: ${CMD[*]}" | tee -a "$REPORT"
+set +e
+OUTPUT="$("${CMD[@]}" 2>&1)"
+RC=$?
+set -e
+echo "$OUTPUT" >> "$REPORT"
+RESULTS_FILE="${BATCH_FILE}.results"
+RETRY_FILE="${BATCH_FILE}.retry"
+DONE_FILE="${BATCH_FILE}.done"
+GOOD_LINE="https://youtu.be/jk1mR4WWMRk|D'Arienzo (Reynal) Esclavas blancas - 1940|tango"
+BAD_LINE="https://youtu.be/jk1mR4WWMRk|D'Arienzo (Reynal) Esclavas blancas - 1940|invalid"
+OUTPUT_DIR="${TEST_ROOT}/batch_sidecar_output"
+NO_MP3=1
+if [ -d "$OUTPUT_DIR" ]; then
+  if find "$OUTPUT_DIR" -type f -name "*.mp3" | grep -q .; then
+    NO_MP3=0
+  fi
+fi
+if [ "$RC" -eq 0 ] \
+  && [ -f "$RESULTS_FILE" ] && [ -f "$RETRY_FILE" ] && [ -f "$DONE_FILE" ] \
+  && awk -F'|' 'NF != 6 {bad=1} END{exit bad}' "$RESULTS_FILE" \
+  && [ "$(cat "$RETRY_FILE")" = "$BAD_LINE" ] \
+  && [ "$(cat "$DONE_FILE")" = "$GOOD_LINE" ] \
+  && [ "$NO_MP3" -eq 1 ]; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
+########################################
+# TEST 15: Default output-root is used
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root is used" | tee -a "$REPORT"
@@ -326,7 +375,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 15: Default output-root matches dry-run and real execution
+# TEST 16: Default output-root matches dry-run and real execution
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root matches dry-run and real execution" | tee -a "$REPORT"
@@ -370,7 +419,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 16: Default output-root does not change with cwd
+# TEST 17: Default output-root does not change with cwd
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root does not change with cwd" | tee -a "$REPORT"
@@ -411,7 +460,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 17: --output-root overrides default in dry-run and real mode
+# TEST 18: --output-root overrides default in dry-run and real mode
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --output-root overrides default in dry-run and real mode" | tee -a "$REPORT"
@@ -456,7 +505,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 18: Default output-root dry-run keeps existing file
+# TEST 19: Default output-root dry-run keeps existing file
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root dry-run keeps existing file" | tee -a "$REPORT"
@@ -491,7 +540,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 19: Default behavior when file exists (no skip/overwrite)
+# TEST 20: Default behavior when file exists (no skip/overwrite)
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default behavior when file exists (no skip/overwrite)" | tee -a "$REPORT"
@@ -525,7 +574,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 20: Countdown shown when --yes not provided
+# TEST 21: Countdown shown when --yes not provided
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Countdown shown when --yes not provided" | tee -a "$REPORT"
@@ -553,7 +602,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 21: --version matches header and is single-source
+# TEST 22: --version matches header and is single-source
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --version matches header and is single-source" | tee -a "$REPORT"

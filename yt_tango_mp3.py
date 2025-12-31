@@ -25,6 +25,18 @@ GENRES = ["tango", "vals", "milonga", "cortina"]
 BATCH_DONE_PREFIX = "#done "
 BATCH_ERR_PREFIX = "[error:"
 ABORT_AFTER_FAILURES = 5
+BATCH_REASON_MAP = {
+    "invalid genre": "invalid_genre",
+    "disk space low": "disk_space_low",
+    "retry attempts exhausted": "retry_attempts_exhausted",
+    "orchestra mapping missing": "orchestra_mapping_missing",
+    ".mp3 exists; use --overwrite": "mp3_exists_use_overwrite",
+    ".webm / .m4a download error": "download_error",
+    ".mp3 encode error": "mp3_encode_error",
+    ".mp3 validation failed: bitrate": "mp3_validation_failed_bitrate",
+    ".mp3 metadata write error": "mp3_metadata_write_error",
+    ".mp3 validation failed: metadata": "mp3_validation_failed_metadata",
+}
 
 # =========================
 # ORCHESTRA DIRECTORY MAP
@@ -230,11 +242,38 @@ def process_entry(url, desc, genre, output_root, args):
 # =========================
 # BATCH MODE (RESTORED)
 # =========================
+def normalize_batch_reason(reason):
+    if not reason:
+        return "unknown"
+    mapped = BATCH_REASON_MAP.get(reason)
+    if mapped:
+        return mapped
+    cleaned = []
+    last_us = False
+    for ch in reason.lower():
+        if ch.isalnum():
+            cleaned.append(ch)
+            last_us = False
+        else:
+            if not last_us:
+                cleaned.append("_")
+                last_us = True
+    result = "".join(cleaned).strip("_")
+    return result or "unknown"
+
+def format_batch_timestamp():
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
 def process_batch(batch_file, output_root, args):
     failures = 0
     successes = 0
     lines = Path(batch_file).read_text().splitlines()
     new_lines = []
+    retry_lines = []
+    done_lines = []
+    results_path = Path(f"{batch_file}.results")
+    retry_path = Path(f"{batch_file}.retry")
+    done_path = Path(f"{batch_file}.done")
 
     for line_number, line in enumerate(lines, start=1):
         if line.startswith(BATCH_DONE_PREFIX) or line.startswith(BATCH_ERR_PREFIX):
@@ -249,21 +288,64 @@ def process_batch(batch_file, output_root, args):
             print(f"WARNING: line {line_number} malformed; expected url|desc|genre", file=sys.stderr)
             new_lines.append(f"{BATCH_ERR_PREFIX} malformed] {line}")
             failures += 1
+            reason = "malformed"
+            results_line = " | ".join([
+                format_batch_timestamp(),
+                "FAIL",
+                normalize_batch_reason(reason),
+                "-",
+                "-",
+                "-",
+            ])
+            with results_path.open("a", encoding="utf-8") as handle:
+                handle.write(results_line + "\n")
+            retry_lines.append(line)
             continue
+
+        target = None
+        should_skip = False
+        if genre in GENRES:
+            orchestra_token = desc.split()[0].upper()
+            orchestra_dir = ORCHESTRA_DIR_MAP.get(orchestra_token)
+            if orchestra_dir:
+                target = Path(output_root) / genre / orchestra_dir / f"{desc}.mp3"
+                if target.exists() and args.skip_if_exists:
+                    should_skip = True
 
         ok, err = process_entry(url, desc, genre, output_root, args)
         if ok:
             new_lines.append(f"{BATCH_DONE_PREFIX}{line}")
             successes += 1
+            status = "SKIPPED" if should_skip else "SUCCESS"
+            reason = "skip_if_exists" if should_skip else "ok"
+            if status == "SUCCESS":
+                done_lines.append(line)
         else:
             new_lines.append(f"{BATCH_ERR_PREFIX} {err}] {line}")
             failures += 1
+            status = "FAIL"
+            reason = normalize_batch_reason(err)
+            retry_lines.append(line)
+
+        output_path = str(target) if target else "-"
+        results_line = " | ".join([
+            format_batch_timestamp(),
+            status,
+            normalize_batch_reason(reason),
+            output_path,
+            "-",
+            "-",
+        ])
+        with results_path.open("a", encoding="utf-8") as handle:
+            handle.write(results_line + "\n")
 
         if failures >= ABORT_AFTER_FAILURES:
             break
 
     if not args.dry_run:
         Path(batch_file).write_text("\n".join(new_lines))
+    retry_path.write_text("\n".join(retry_lines))
+    done_path.write_text("\n".join(done_lines))
     return successes > 0
 
 # =========================
@@ -273,7 +355,12 @@ def main():
     examples = (
         "Examples:\n"
         "  Single: yt_tango_mp3.py --url <url> --desc \"<desc>\" --genre tango --output-root \"<dir>\" --overwrite\n"
-        "  Batch:  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite"
+        "  Batch:  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite\n"
+        "\n"
+        "Batch output files:\n"
+        "  <batch>.results  Append-only audit log\n"
+        "  <batch>.retry    Failed entries (re-runnable)\n"
+        "  <batch>.done     Successful entries"
     )
     ap = argparse.ArgumentParser(
         description="Archive YouTube tango tracks as verified MP3s.",
