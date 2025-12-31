@@ -132,9 +132,56 @@ run_test "Batch mode processes input file" \
     --overwrite \
     "${REAL_RUN_FLAGS[@]}"
 
+########################################
+# TEST 7: Batch sidecar outputs in dry-run
+########################################
+TEST_COUNT=$((TEST_COUNT+1))
+echo "TEST ${TEST_COUNT}: Batch sidecar outputs in dry-run" | tee -a "$REPORT"
+BATCH_FILE="${TEST_ROOT}/batch_sidecar.txt"
+SIDE_SUCCESS="https://youtu.be/jk1mR4WWMRk|D'Arienzo (Reynal) Esclavas blancas - 1940|tango"
+SIDE_FAIL="https://youtu.be/jk1mR4WWMRk|Bad Line|INVALID"
+cat > "$BATCH_FILE" <<EOF
+${SIDE_SUCCESS}
+${SIDE_FAIL}
+EOF
+CMD=(
+  "$PYTHON" "$SCRIPT"
+  --batch-file "$BATCH_FILE"
+  --output-root "$TEST_ROOT/batch_sidecar"
+  --dry-run
+  --yes
+)
+echo "CMD: ${CMD[*]}" | tee -a "$REPORT"
+set +e
+OUTPUT="$("${CMD[@]}" 2>&1)"
+RC=$?
+set -e
+echo "$OUTPUT" >> "$REPORT"
+RESULTS_FILE="${BATCH_FILE}.results"
+RETRY_FILE="${BATCH_FILE}.retry"
+DONE_FILE="${BATCH_FILE}.done"
+if [ "$RC" -eq 0 ] \
+  && [ -f "$RESULTS_FILE" ] \
+  && [ -f "$RETRY_FILE" ] \
+  && [ -f "$DONE_FILE" ] \
+  && grep -Fxq "$SIDE_FAIL" "$RETRY_FILE" \
+  && ! grep -Fxq "$SIDE_SUCCESS" "$RETRY_FILE" \
+  && grep -Fxq "$SIDE_SUCCESS" "$DONE_FILE" \
+  && ! grep -Fxq "$SIDE_FAIL" "$DONE_FILE" \
+  && [ "$(wc -l < "$RESULTS_FILE")" -ge 2 ] \
+  && awk -F'\t' 'NF!=6 {bad=1} END {exit bad}' "$RESULTS_FILE" \
+  && [ ! -d "$TEST_ROOT/batch_sidecar" ]; then
+  echo "RESULT: PASS" | tee -a "$REPORT"
+  PASS_COUNT=$((PASS_COUNT+1))
+else
+  echo "RESULT: FAIL" | tee -a "$REPORT"
+  FAIL_COUNT=$((FAIL_COUNT+1))
+fi
+echo >> "$REPORT"
+
 
 ########################################
-# TEST 7: Missing args returns non-zero exit code
+# TEST 8: Missing args returns non-zero exit code
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Missing args returns non-zero exit code" | tee -a "$REPORT"
@@ -155,7 +202,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 8: Invalid genre fails fast
+# TEST 9: Invalid genre fails fast
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Invalid genre fails fast" | tee -a "$REPORT"
@@ -176,7 +223,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 9: Batch file missing fails cleanly
+# TEST 10: Batch file missing fails cleanly
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch file missing fails cleanly" | tee -a "$REPORT"
@@ -197,7 +244,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 10: Batch continues after malformed line
+# TEST 11: Batch continues after malformed line
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch continues after malformed line" | tee -a "$REPORT"
@@ -230,7 +277,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 11: Simulated low disk space aborts safely
+# TEST 12: Simulated low disk space aborts safely
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Simulated low disk space aborts safely" | tee -a "$REPORT"
@@ -251,7 +298,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 12: Network failure retry exhaustion
+# TEST 13: Network failure retry exhaustion
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Network failure retry exhaustion" | tee -a "$REPORT"
@@ -272,7 +319,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 13: Batch dry-run is non-mutating
+# TEST 14: Batch dry-run is non-mutating
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Batch dry-run is non-mutating" | tee -a "$REPORT"
@@ -297,7 +344,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 14: Default output-root is used
+# TEST 15: Default output-root is used
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root is used" | tee -a "$REPORT"
@@ -326,7 +373,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 15: Default output-root matches dry-run and real execution
+# TEST 16: Default output-root matches dry-run and real execution
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root matches dry-run and real execution" | tee -a "$REPORT"
@@ -370,7 +417,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 16: Default output-root does not change with cwd
+# TEST 17: Default output-root does not change with cwd
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root does not change with cwd" | tee -a "$REPORT"
@@ -411,7 +458,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 17: --output-root overrides default in dry-run and real mode
+# TEST 18: --output-root overrides default in dry-run and real mode
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --output-root overrides default in dry-run and real mode" | tee -a "$REPORT"
@@ -456,7 +503,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 18: Default output-root dry-run keeps existing file
+# TEST 19: Default output-root dry-run keeps existing file
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default output-root dry-run keeps existing file" | tee -a "$REPORT"
@@ -491,7 +538,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 19: Default behavior when file exists (no skip/overwrite)
+# TEST 20: Default behavior when file exists (no skip/overwrite)
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Default behavior when file exists (no skip/overwrite)" | tee -a "$REPORT"
@@ -525,7 +572,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 20: Countdown shown when --yes not provided
+# TEST 21: Countdown shown when --yes not provided
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: Countdown shown when --yes not provided" | tee -a "$REPORT"
@@ -553,7 +600,7 @@ fi
 echo >> "$REPORT"
 
 ########################################
-# TEST 21: --version matches header and is single-source
+# TEST 22: --version matches header and is single-source
 ########################################
 TEST_COUNT=$((TEST_COUNT+1))
 echo "TEST ${TEST_COUNT}: --version matches header and is single-source" | tee -a "$REPORT"
