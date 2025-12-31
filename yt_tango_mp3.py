@@ -12,6 +12,9 @@ import shutil
 import tempfile
 import time
 import json
+import hashlib
+from datetime import datetime, timezone
+from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
 OWNER_TAG = "THOMPSON, Paul"
@@ -81,6 +84,41 @@ def get_script_version():
     except OSError:
         return "unknown"
     return "unknown"
+
+def utc_timestamp():
+    return datetime.now(timezone.utc).isoformat()
+
+def normalize_reason(reason):
+    if not reason:
+        return "ok"
+    text = reason.lower().strip()
+    text = text.replace(";", " ").replace(":", " ").replace("/", " ").replace("-", " ").replace(".", " ")
+    text = " ".join(text.split())
+    return text.replace(" ", "_")
+
+def extract_video_id(url):
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return "-"
+    if parsed.netloc in ("youtu.be", "www.youtu.be"):
+        video_id = parsed.path.lstrip("/")
+        return video_id or "-"
+    if "youtube" in parsed.netloc:
+        query = parse_qs(parsed.query)
+        video_id = query.get("v", ["-"])[0]
+        return video_id or "-"
+    return "-"
+
+def compute_sha256(path):
+    try:
+        hasher = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                hasher.update(chunk)
+        return hasher.hexdigest()
+    except OSError:
+        return None
 
 # =========================
 # METADATA + BITRATE (UNCHANGED)
@@ -235,32 +273,92 @@ def process_batch(batch_file, output_root, args):
     successes = 0
     lines = Path(batch_file).read_text().splitlines()
     new_lines = []
+    retry_lines = []
+    done_lines = []
+    results_path = Path(f"{batch_file}.results")
+    retry_path = Path(f"{batch_file}.retry")
+    done_path = Path(f"{batch_file}.done")
 
-    for line_number, line in enumerate(lines, start=1):
-        if line.startswith(BATCH_DONE_PREFIX) or line.startswith(BATCH_ERR_PREFIX):
-            new_lines.append(line)
-            continue
+    with results_path.open("a", encoding="utf-8") as results_handle:
+        for line_number, line in enumerate(lines, start=1):
+            if line.startswith(BATCH_DONE_PREFIX) or line.startswith(BATCH_ERR_PREFIX):
+                new_lines.append(line)
+                continue
 
-        try:
-            url, desc, genre = [x.strip() for x in line.split("|", 2)]
-            if not (url and desc and genre):
-                raise ValueError
-        except ValueError:
-            print(f"WARNING: line {line_number} malformed; expected url|desc|genre", file=sys.stderr)
-            new_lines.append(f"{BATCH_ERR_PREFIX} malformed] {line}")
-            failures += 1
-            continue
+            timestamp = utc_timestamp()
+            status = "FAIL"
+            reason = "malformed"
+            output_path = "-"
+            video_id = "-"
+            sha256 = "-"
+            target = None
+            pre_exists = False
 
-        ok, err = process_entry(url, desc, genre, output_root, args)
-        if ok:
-            new_lines.append(f"{BATCH_DONE_PREFIX}{line}")
-            successes += 1
-        else:
-            new_lines.append(f"{BATCH_ERR_PREFIX} {err}] {line}")
-            failures += 1
+            try:
+                url, desc, genre = [x.strip() for x in line.split("|", 2)]
+                if not (url and desc and genre):
+                    raise ValueError
+            except ValueError:
+                print(f"WARNING: line {line_number} malformed; expected url|desc|genre", file=sys.stderr)
+                new_lines.append(f"{BATCH_ERR_PREFIX} malformed] {line}")
+                failures += 1
+                retry_lines.append(line)
+                results_handle.write(
+                    f"{timestamp}\t{status}\t{reason}\t{output_path}\t{video_id}\t{sha256}\n"
+                )
+                continue
 
-        if failures >= ABORT_AFTER_FAILURES:
-            break
+            video_id = extract_video_id(url)
+            if genre in GENRES:
+                orchestra_token = desc.split()[0].upper()
+                orchestra_dir = ORCHESTRA_DIR_MAP.get(orchestra_token)
+                if orchestra_dir:
+                    target = Path(output_root) / genre / orchestra_dir / f"{desc}.mp3"
+                    output_path = str(target)
+                    pre_exists = target.exists()
+
+            ok, err = process_entry(url, desc, genre, output_root, args)
+            if ok:
+                new_lines.append(f"{BATCH_DONE_PREFIX}{line}")
+                successes += 1
+                done_lines.append(line)
+                if args.dry_run:
+                    status = "SKIPPED"
+                    if pre_exists and args.skip_if_exists:
+                        reason = "exists"
+                    elif pre_exists and not args.overwrite:
+                        reason = "exists_no_overwrite"
+                    elif pre_exists and args.overwrite:
+                        reason = "overwrite"
+                    else:
+                        reason = "dry_run"
+                else:
+                    if pre_exists and args.skip_if_exists:
+                        status = "SKIPPED"
+                        reason = "exists"
+                    else:
+                        status = "SUCCESS"
+                        reason = "overwritten" if pre_exists and args.overwrite else "created"
+                if not args.dry_run and target and target.exists():
+                    digest = compute_sha256(str(target))
+                    if digest:
+                        sha256 = digest
+            else:
+                new_lines.append(f"{BATCH_ERR_PREFIX} {err}] {line}")
+                failures += 1
+                retry_lines.append(line)
+                reason = normalize_reason(err or "error")
+                status = "FAIL"
+
+            results_handle.write(
+                f"{timestamp}\t{status}\t{reason}\t{output_path}\t{video_id}\t{sha256}\n"
+            )
+
+            if failures >= ABORT_AFTER_FAILURES:
+                break
+
+    retry_path.write_text("\n".join(retry_lines) + ("\n" if retry_lines else ""))
+    done_path.write_text("\n".join(done_lines) + ("\n" if done_lines else ""))
 
     if not args.dry_run:
         Path(batch_file).write_text("\n".join(new_lines))
@@ -273,7 +371,12 @@ def main():
     examples = (
         "Examples:\n"
         "  Single: yt_tango_mp3.py --url <url> --desc \"<desc>\" --genre tango --output-root \"<dir>\" --overwrite\n"
-        "  Batch:  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite"
+        "  Batch:  yt_tango_mp3.py --batch-file \"<file>\" --output-root \"<dir>\" --overwrite\n"
+        "\n"
+        "Batch Output Files:\n"
+        "  <batch>.results  (audit log)\n"
+        "  <batch>.retry    (failed entries, re-runnable)\n"
+        "  <batch>.done     (successful entries)"
     )
     ap = argparse.ArgumentParser(
         description="Archive YouTube tango tracks as verified MP3s.",
