@@ -235,10 +235,21 @@ def process_batch(batch_file, output_root, args):
     successes = 0
     lines = Path(batch_file).read_text().splitlines()
     new_lines = []
+    results_lines = []
+    retry_lines = []
+    done_lines = []
+    results_path = Path(f"{batch_file}.results")
+    retry_path = Path(f"{batch_file}.retry")
+    done_path = Path(f"{batch_file}.done")
 
     for line_number, line in enumerate(lines, start=1):
         if line.startswith(BATCH_DONE_PREFIX) or line.startswith(BATCH_ERR_PREFIX):
             new_lines.append(line)
+            results_lines.append(line)
+            if line.startswith(BATCH_DONE_PREFIX):
+                done_lines.append(line)
+            else:
+                retry_lines.append(line)
             continue
 
         try:
@@ -247,16 +258,25 @@ def process_batch(batch_file, output_root, args):
                 raise ValueError
         except ValueError:
             print(f"WARNING: line {line_number} malformed; expected url|desc|genre", file=sys.stderr)
-            new_lines.append(f"{BATCH_ERR_PREFIX} malformed] {line}")
+            err_line = f"{BATCH_ERR_PREFIX} malformed] {line}"
+            new_lines.append(err_line)
+            results_lines.append(err_line)
+            retry_lines.append(err_line)
             failures += 1
             continue
 
         ok, err = process_entry(url, desc, genre, output_root, args)
         if ok:
-            new_lines.append(f"{BATCH_DONE_PREFIX}{line}")
+            done_line = f"{BATCH_DONE_PREFIX}{line}"
+            new_lines.append(done_line)
+            results_lines.append(done_line)
+            done_lines.append(done_line)
             successes += 1
         else:
-            new_lines.append(f"{BATCH_ERR_PREFIX} {err}] {line}")
+            err_line = f"{BATCH_ERR_PREFIX} {err}] {line}"
+            new_lines.append(err_line)
+            results_lines.append(err_line)
+            retry_lines.append(err_line)
             failures += 1
 
         if failures >= ABORT_AFTER_FAILURES:
@@ -264,6 +284,9 @@ def process_batch(batch_file, output_root, args):
 
     if not args.dry_run:
         Path(batch_file).write_text("\n".join(new_lines))
+        results_path.write_text("\n".join(results_lines))
+        retry_path.write_text("\n".join(retry_lines))
+        done_path.write_text("\n".join(done_lines))
     return successes > 0
 
 # =========================
